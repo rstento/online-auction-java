@@ -1,18 +1,19 @@
 package com.example.auction.transaction.api;
 
-import static com.lightbend.lagom.javadsl.api.Service.named;
-import static com.lightbend.lagom.javadsl.api.Service.pathCall;
-
 import akka.Done;
 import akka.NotUsed;
+import com.example.auction.pagination.PaginatedSequence;
 import com.example.auction.security.SecurityHeaderFilter;
 import com.lightbend.lagom.javadsl.api.Descriptor;
 import com.lightbend.lagom.javadsl.api.Service;
 import com.lightbend.lagom.javadsl.api.ServiceCall;
-import com.lightbend.lagom.javadsl.api.broker.Topic;
 import com.lightbend.lagom.javadsl.api.deser.PathParamSerializers;
 
+import java.util.Optional;
 import java.util.UUID;
+
+import static com.lightbend.lagom.javadsl.api.Service.named;
+import static com.lightbend.lagom.javadsl.api.Service.pathCall;
 
 /**
  * The transaction services.
@@ -29,9 +30,13 @@ public interface TransactionService extends Service {
 
     ServiceCall<DeliveryInfo, Done> submitDeliveryDetails(UUID itemId);
 
-    //ServiceCall<Integer, Done> setDeliveryPrice(UUID itemId);
+    ServiceCall<Integer, Done> setDeliveryPrice(UUID itemId);
 
-    //ServiceCall<PaymentInfo, Done> submitPaymentDetails(UUID itemId);
+    ServiceCall<NotUsed, Done> approveDeliveryDetails(UUID itemId);
+
+    ServiceCall<PaymentInfo, Done> submitPaymentDetails(UUID itemId);
+
+    ServiceCall<PaymentInfoStatus, Done> submitPaymentStatus(UUID itemId);
 
     //ServiceCall<NotUsed, Done> dispatchItem(UUID itemId);
 
@@ -41,6 +46,9 @@ public interface TransactionService extends Service {
 
     ServiceCall<NotUsed, TransactionInfo> getTransaction(UUID itemId);
 
+    ServiceCall<NotUsed, PaginatedSequence<TransactionSummary>> getTransactionsForUser(
+            TransactionInfoStatus status, Optional<Integer> pageNo, Optional<Integer> pageSize);
+
     /**
      * The transaction events topic.
      */
@@ -49,11 +57,17 @@ public interface TransactionService extends Service {
     @Override
     default Descriptor descriptor() {
         return named("transaction").withCalls(
-                pathCall("/api/transaction/:id", this::submitDeliveryDetails),
-                pathCall("/api/transaction/:id", this::getTransaction)
-        ).withPathParamSerializer(UUID.class, PathParamSerializers.required("UUID", UUID::fromString, UUID::toString))
-                .withHeaderFilter(SecurityHeaderFilter.INSTANCE);
-
+                pathCall("/api/transaction/:id/deliverydetails", this::submitDeliveryDetails),
+                pathCall("/api/transaction/:id/deliveryprice", this::setDeliveryPrice),
+                pathCall("/api/transaction/:id/approvedelivery", this::approveDeliveryDetails),
+                pathCall("/api/transaction/:id/paymentdetails", this::submitPaymentDetails),
+                pathCall("/api/transaction/:id/paymentstatus", this::submitPaymentStatus),
+                pathCall("/api/transaction/:id", this::getTransaction),
+                pathCall("/api/transaction?status&pageNo&pageSize", this::getTransactionsForUser)
+        ).withPathParamSerializer(
+                UUID.class, PathParamSerializers.required("UUID", UUID::fromString, UUID::toString)
+        ).withPathParamSerializer(
+                TransactionInfoStatus.class, PathParamSerializers.required("TransactionInfoStatus", TransactionInfoStatus::valueOf, TransactionInfoStatus::toString)
+        ).withHeaderFilter(SecurityHeaderFilter.INSTANCE);
     }
-
 }

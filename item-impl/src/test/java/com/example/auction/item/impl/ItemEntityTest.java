@@ -7,7 +7,6 @@ import com.example.auction.item.impl.PItemEvent.AuctionFinished;
 import com.example.auction.item.impl.PItemEvent.AuctionStarted;
 import com.example.auction.item.impl.PItemEvent.ItemCreated;
 import com.example.auction.item.impl.PItemEvent.PriceUpdated;
-import com.lightbend.lagom.javadsl.api.transport.Forbidden;
 import com.lightbend.lagom.javadsl.api.transport.NotFound;
 import com.lightbend.lagom.javadsl.persistence.PersistentEntity;
 import com.lightbend.lagom.javadsl.testkit.PersistentEntityTestDriver;
@@ -21,7 +20,6 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
 
-import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -276,7 +274,7 @@ public class ItemEntityTest {
 
     //  ---------------------------------------------------------------------------------------------------------
 
-    private <T> void expectEvents(Outcome<T, ?> outcome, T... expected) {
+    private void expectEvents(Outcome<?, ?> outcome, Object... expected) {
         if (!outcome.events().equals(Arrays.asList(expected))) {
             throw new AssertionError("Failed expectation. Expected [" + Arrays.asList(expected) + "] was not equal to [" + outcome.events() + "].");
         }

@@ -1,8 +1,10 @@
 package com.example.auction.user.impl;
 
+import com.example.auction.user.impl.PUserCommand.CreatePUser;
+import com.example.auction.user.impl.PUserCommand.GetPUser;
+import com.example.auction.user.impl.PUserEvent.PUserCreated;
 import com.lightbend.lagom.javadsl.persistence.PersistentEntity;
-import com.example.auction.user.impl.PUserCommand.*;
-import com.example.auction.user.impl.PUserEvent.*;
+import org.mindrot.jbcrypt.BCrypt;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -29,7 +31,7 @@ public class PUserEntity extends PersistentEntity<PUserCommand, PUserEvent, Opti
         );
 
         b.setReadOnlyCommandHandler(CreatePUser.class, (create, ctx) ->
-            ctx.invalidCommand("User already exists.")
+                ctx.invalidCommand("User already exists.")
         );
 
         return b.build();
@@ -43,12 +45,30 @@ public class PUserEntity extends PersistentEntity<PUserCommand, PUserEvent, Opti
         );
 
         b.setCommandHandler(CreatePUser.class, (create, ctx) -> {
-            PUser user = new PUser(UUID.fromString(entityId()), create.getName(), create.getEmail());
-            return ctx.thenPersist(new PUserCreated(user), (e) -> ctx.reply(user));
+
+            PUser user = new PUser(UUID.fromString(entityId()),  create.getName(), create.getEmail(), create.getPasswordHash());
+            return ctx.thenPersist(new PUserCreated(user), (e) -> ctx.reply(Optional.ofNullable(user)));
         });
 
         b.setEventHandlerChangingBehavior(PUserCreated.class, user -> created(user.getUser()));
 
         return b.build();
+    }
+    public static String hashPassword(String password_plaintext) {
+        String salt = BCrypt.gensalt(12);
+        String hashed_password = BCrypt.hashpw(password_plaintext, salt);
+
+        return (hashed_password);
+    }
+
+    public static boolean checkPassword(String password_plaintext, String stored_hash) {
+        boolean password_verified = false;
+
+        if (null == stored_hash)
+            throw new java.lang.IllegalArgumentException("Invalid hash provided for comparison");
+
+        password_verified = BCrypt.checkpw(password_plaintext, stored_hash);
+
+        return (password_verified);
     }
 }
